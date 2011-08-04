@@ -3,7 +3,7 @@ import unittest
 import sys
 sys.path.insert(0, '../../..')
 
-from aufmachen.scrapers import epguides
+from aufmachen.websites import epguides
 
 class EpguidesTestCase(unittest.TestCase):
     

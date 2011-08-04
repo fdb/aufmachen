@@ -47,8 +47,8 @@ def app(environ, start_response):
     except IndexError:
         start_response('404 Not Found', [('content-type', 'text/html')])
         return "Website / resource not found."
-    root_module = __import__('aufmachen.scrapers.%s' % website)
-    website_module = getattr(root_module.scrapers, website)
+    root_module = __import__('aufmachen.websites.%s' % website)
+    website_module = getattr(root_module.websites, website)
     resource_parser = getattr(website_module, resource)
     data = resource_parser.get(resource_id)
     if data is None:

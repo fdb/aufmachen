@@ -6,7 +6,7 @@ Aufmachen is a library for turning a website's HTML into nice, clean objects.
 
 Here's how to scrape epguides.com:
 
-    from aufmachen.scrapers import epguides
+    from aufmachen.websites import epguides
     earl_series = epguides.series.get('mynameisearl')
     
     len(earl_series['seasons'])
