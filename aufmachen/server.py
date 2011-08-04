@@ -40,20 +40,23 @@ ID_RE = re.compile(r'[A-Za-z0-9-]{1,100}')
 
 def app(environ, start_response):
     paths = environ.get('PATH_INFO', '').split('/')
-    try:
-        website = ONLY_LETTERS_RE.match(paths[1]).group()
-        resource = ONLY_LETTERS_RE.match(paths[2]).group()
-        resource_id = ID_RE.match(paths[3]).group()
-    except IndexError:
+    
+    if len(paths) < 3 or len(paths) > 4:
         start_response('404 Not Found', [('content-type', 'text/html')])
         return "Website / resource not found."
+
+    website = ONLY_LETTERS_RE.match(paths[1]).group()
+    resource = ONLY_LETTERS_RE.match(paths[2]).group()
+
     root_module = __import__('aufmachen.websites.%s' % website)
     website_module = getattr(root_module.websites, website)
     resource_parser = getattr(website_module, resource)
-    data = resource_parser.get(resource_id)
-    if data is None:
-        start_response('404 Not Found', [('content-type', 'text/html')])
-        return "ID not found."        
+
+    if len(paths) == 3: # List view
+        data = resource_parser.list()
+    elif len(paths) == 4: # Detail view
+        resource_id = ID_RE.match(paths[3]).group()
+        data = resource_parser.get(resource_id)
         
     start_response('200 OK', [('content-type', 'text/html')])
     return json.dumps(data, indent=2)

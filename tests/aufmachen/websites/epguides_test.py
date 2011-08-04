@@ -1,7 +1,14 @@
+import os
+import sys
 import unittest
 
-import sys
 sys.path.insert(0, '../../..')
+
+# Note that we need mock data, since the data on Immoweb will change rapidly.
+from aufmachen import crawler
+crawler.CACHE_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../mocks/epguides')
+# If the data is not in the cache directory, something's wrong. Bail out.
+crawler.FAIL_IF_NOT_CACHED = True
 
 from aufmachen.websites import epguides
 

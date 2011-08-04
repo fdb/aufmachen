@@ -10,6 +10,7 @@ from urllib import urlopen
 MODULE_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 PHANTOM_SCRIPT = os.path.join(MODULE_DIRECTORY, 'retrieve.js')
 CACHE_DIRECTORY = os.path.join(MODULE_DIRECTORY, '../tmp/cache')
+FAIL_IF_NOT_CACHED = False
 
 class HttpNotFound(BaseException):
     pass
@@ -40,7 +41,7 @@ def phantomjs_retrieve(url):
     Returns a status code (e.g. 200) and the HTML as a unicode string.
     """
     range_limit()
-    print "GET", url
+    print "pGET", url
     process = subprocess.Popen(['phantomjs', PHANTOM_SCRIPT, url], stdout=subprocess.PIPE)
     out = process.communicate()
     process.wait()
@@ -60,7 +61,7 @@ def urllib_retrieve(url):
     Returns a status code (e.g. 200) and the HTML as a unicode string.
     """
     range_limit()
-    print "GET", url
+    print "uGET", url
     f = urlopen(url)
     html = f.read().decode('utf-8', 'ignore')
     return f.getcode(), html
@@ -97,6 +98,8 @@ def get_url(url, cached=True, crawler='urllib'):
         with open(cache_path) as f:
             html = f.read().decode('utf-8')
     else:
+        if FAIL_IF_NOT_CACHED:
+            raise BaseException("URL is not in cache and FAIL_IF_NOT_CACHED is True: %s" % url)
         crawler_fn = CRAWLERS[crawler]
         status, html = crawler_fn(url)
         if status != 200: 
