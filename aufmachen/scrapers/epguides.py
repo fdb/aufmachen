@@ -1,7 +1,7 @@
 import re
 from time import strptime, strftime
 
-from aufmachen.crawler import get_url
+from aufmachen.crawler import get_url, STATUS_OK
 from aufmachen.scrapers import BaseScraper
 from aufmachen.soupselect import select
 from aufmachen.BeautifulSoup import BeautifulSoup
@@ -12,7 +12,9 @@ class SeriesScraper(BaseScraper):
         return 'http://epguides.com/%s/' % id
     
     def get(self, id):
-        html = get_url(self.detail_url(id))
+        status, html = get_url(self.detail_url(id))
+        if status != STATUS_OK:
+            return None
         
         soup = BeautifulSoup(html)
         series = {}

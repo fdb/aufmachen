@@ -30,16 +30,24 @@ def range_limit():
         
 def phantomjs_retrieve(url):
     range_limit()
-    print "Retrieving", url
+    print "GET", url
     process = subprocess.Popen(['phantomjs', PHANTOM_SCRIPT, url], stdout=subprocess.PIPE)
     out = process.communicate()
     process.wait()
     return out[0]
     
 def urllib_retrieve(url):
+    """Retrieve the given URL.
+    
+    url - The page URL to retrieve
+    
+    Returns a status code (e.g. 200) and the HTML as a unicode string.
+    """
     range_limit()
-    print "Retrieving", url
-    return urlopen(url).read().decode('utf-8', 'ignore')
+    print "GET", url
+    f = urlopen(url)
+    html = f.read().decode('utf-8', 'ignore')
+    return f.getcode(), html
 
 def cache_path_for_url(url):
     """Return the path where the URL might be cached."""
@@ -59,23 +67,29 @@ def _ensure_directory(dirname):
     except OSError: # File exists
         pass
 
+STATUS_OK = 200
+
 def get_url(url, cached=True, crawler='urllib'):
     """Retrieves the HTML code for a given URL.
      If a cached version is not available, uses phantom_retrieve to fetch the page.
+
     cached - If True, retrieves the URL from the cache if it is available. If False, will still store the page in cache.
-    Returns the HTML code of the page.
+
+    Returns a status code (e.g. 200) and the HTML as a unicode string.
     """
     cache_path = cache_path_for_url(url)
     if cached and os.path.exists(cache_path):
         with open(cache_path) as f:
             html = f.read().decode('utf-8')
+            status = STATUS_OK
     else:
         crawler_fn = CRAWLERS[crawler]
-        html = crawler_fn(url)
-        _ensure_directory(CACHE_DIRECTORY)
-        with open(cache_path, 'w') as f:
-            f.write(html.encode('utf-8'))
-    return html
+        status, html = crawler_fn(url)
+        if status == STATUS_OK: # Only cache status 200.
+            _ensure_directory(CACHE_DIRECTORY)
+            with open(cache_path, 'w') as f:
+                f.write(html.encode('utf-8'))
+    return status, html
     
 if __name__=='__main__':
-    print get_url('http://nodebox.net')
+    print get_url('http://nodebox.net/')
