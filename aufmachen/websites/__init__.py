@@ -12,10 +12,9 @@ class BaseResource(object):
         html = self.get_detail_html(id)
         return self.parse_detail(id, html)
 
-    def get_list_html(self, **kwargs):
-        return get_url(self.list_url(**kwargs), crawler=self.crawler)    
+    def get_list_html(self, cached=True, **kwargs):
+        return get_url(self.list_url(**kwargs), crawler=self.crawler, cached=cached)
     
-    def get_detail_html(self, id):
-        return get_url(self.detail_url(id), crawler=self.crawler)    
+    def get_detail_html(self, id, cached=True):
+        return get_url(self.detail_url(id), crawler=self.crawler, cached=cached)
     
-        
