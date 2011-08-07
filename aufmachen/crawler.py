@@ -20,17 +20,17 @@ def utc_now():
 
 _last_network_access = 0
 
-TIME_LIMIT = 2
+TIME_LIMIT = 10
 TIME_SPREAD = 2.0
 
 def range_limit():
     global _last_network_access
     now = utc_now()
-    if now - _last_network_access < TIME_LIMIT:
+    if (now - _last_network_access) < TIME_LIMIT:
         secs = uniform(TIME_LIMIT-TIME_SPREAD, TIME_LIMIT+TIME_SPREAD)
         print "Sleeping for %.1f seconds..." % secs
         time.sleep(secs)
-        _last_network_access = now
+    _last_network_access = utc_now()
         
 def phantomjs_retrieve(url):
     """Retrieve the given URL using PhantomJS.
