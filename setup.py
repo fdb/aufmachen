@@ -7,7 +7,8 @@ setup(
     license='BSD',
     author='Frederik & Jan De Bleser',
     description='Turns a website\'s HTML into nice, clean objects.',
-    packages=['aufmachen'],
+    packages=['aufmachen', 'aufmachen.websites'],
+    package_data = {'aufmachen': ['*.js']},
     platforms='any',
     classifiers=[
         'Development Status :: 4 - Beta',
