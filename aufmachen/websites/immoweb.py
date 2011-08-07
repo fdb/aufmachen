@@ -214,8 +214,12 @@ class Estates(BaseResource):
         estate['price'] = parse_price(select(soup, '.price')[0].string)
         
         # Bedrooms / Area
-        estate['bedrooms'] = parse_first_number(select(soup, '.locationdescription li')[0].string)
-        estate['area'] = parse_first_number(select(soup, '.locationdescription li')[1].string)
+        try:
+            estate['bedrooms'] = parse_first_number(select(soup, '.locationdescription li')[0].string)
+        except: pass
+        try:
+            estate['area'] = parse_first_number(select(soup, '.locationdescription li')[1].string)
+        except: pass
         
         # Address: '<li>Hendrik<font color="#e7ebf7">b</font>Geertstraat<font color="#e7ebf7">s</font>18</li>'
         address = select(soup, '.locationinfo li')
