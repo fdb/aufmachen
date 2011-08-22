@@ -109,7 +109,6 @@ def find_string(regex, s):
     """
     m = re.search(regex, s)
     if m is None:
-        print '=ERR= Could not find %s in %s' % (regex, s)
         return None
     return m.groups()[0]
     
