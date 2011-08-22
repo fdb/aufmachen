@@ -1,6 +1,12 @@
+from random import choice
+import string
+import json
 import re
 from time import strptime, strftime
 
+import sys
+sys.path.append('../..')
+from aufmachen.crawler import get_url, CRAWLERS, range_limit
 from aufmachen.websites import BaseResource
 from aufmachen.soupselect import select
 from aufmachen.BeautifulSoup import BeautifulSoup, NavigableString
@@ -23,7 +29,7 @@ IMMOWEB_KEY_MAP = {
     KEY_ZIP_CODE: 'XCODECOMMUNE1',
     KEY_PRICE_MIN: 'XPRICE1',
     KEY_PRICE_MAX: 'XPRICE2',
-    }
+}
 
 IMMOWEB_LIST_DEFAULTS = {
     'XTOOLBARMAP': 'Y',
@@ -52,10 +58,7 @@ IMMOWEB_LIST_DEFAULTS = {
     'XCODECOMMUNELIBRE': '',
     'XCODECOMMUNE1': '',
     'XADKEY': '000004',
-    }
-
-# only new:
-# 'XNEUF': 'U',
+}
 
 IMMOWEB_ESTATE_TYPE_MAP = {
     ESTATE_TYPE_HOUSE: 1,
@@ -66,6 +69,67 @@ IMMOWEB_VALUE_MAP = {
     (KEY_ESTATE_TYPE, 'house'): '1'
 }
 
+
+import urllib
+from copy import copy
+def immoweb_retrieve(url, data):
+    range_limit()
+    print "iGET", url
+    f = iPhoneURLOpener().open(url, data)
+    html = f.read().decode('utf-8', 'ignore')
+    return f.getcode(), html
+
+CRAWLERS['immoweb_crawler'] = immoweb_retrieve
+
+IMMOWEB_IPHONE_URL = 'http://www.immoweb.be/nl/iphone.cfc'
+
+RANDOM_IPHONE_ID = ''.join([choice(string.hexdigits) for i in range(40)]).lower()
+
+DEFAULT_FORM_DATA = {
+    'iPhone': RANDOM_IPHONE_ID,
+    'ClientSource': '',
+    'LoggedIdClient': '0',
+}
+
+class iPhoneURLOpener(urllib.FancyURLopener):
+    version = 'Immoweb/1.1 CFNetwork/485.13.9 Darwin/11.0.0'
+
+ADDRESS_RE = re.compile('(.*?)\s*(\d{4})\s+-\s+(.*)')
+
+def find_string(regex, s):
+    """Find a string using a given regular expression. 
+    If the string cannot be found, returns None.
+    The regex should contain one matching group, 
+    as only the result of the first group is returned.
+
+    s - The string to search.
+    regex - A string containing the regular expression.
+    
+    Returns a unicode string or None.
+    """
+    m = re.search(regex, s)
+    if m is None:
+        print '=ERR= Could not find %s in %s' % (regex, s)
+        return None
+    return m.groups()[0]
+    
+def find_number(regex, s):
+    """Find a number using a given regular expression.
+    If the string cannot be found, returns None.
+    The regex should contain one matching group, 
+    as only the result of the first group is returned.
+    The group should only contain numeric characters ([0-9]+).
+    
+    s - The string to search.
+    regex - A string containing the regular expression.
+    
+    Returns an integer or None.
+    """
+    result = find_string(regex, s)
+    if result is None:
+        return None
+    return int(result)
+    
 def parse_first_number(s):
     """Parse the first number in the string we encounter.
     
@@ -88,21 +152,6 @@ def parse_first_number(s):
     if m is None: return None
     return int(m.groups(1)[0])
 
-def parse_price(s):
-    PRICE_RE = re.compile(r'[^0-9]')
-    try:
-        return int(PRICE_RE.sub('', s))
-    except ValueError:
-        return None
-
-def parse_immoweb_link(url):
-    """Parses an Immoweb estate detail URL and returns the Immoweb estate id.
-
-    Returns a string with the Immoweb estate id.
-    """
-    IMMOWEB_ID_RE = re.compile(r'.*?IdBien=([0-9]+).*?')
-    return IMMOWEB_ID_RE.match(url).groups()[0]
-
 def clean_text(s):
     """Removes all cruft from the text."""
     SPACES_RE = re.compile(r'\s+')
@@ -112,6 +161,32 @@ def clean_text(s):
     s = SPECIAL_CHARS_RE.sub('', s)
     return s
 
+def parse_immoweb_link(url):
+    """Parses an Immoweb estate detail URL and returns the Immoweb estate id.
+
+    Returns a string with the Immoweb estate id.
+    """
+    IMMOWEB_ID_RE = re.compile(r'.*?IdBien=([0-9]+).*?')
+    return IMMOWEB_ID_RE.match(url).groups()[0]
+
+def parse_number(d, key, regex, s):
+    """Find a number using a given regular expression.
+    If the number is found, sets it under the key in the given dictionary.
+    
+    d - The dictionary that will contain the data.
+    key - The key into the dictionary.
+    regex - A string containing the regular expression.
+    s - The string to search.
+    """
+    result = find_number(regex, s)
+    if result is not None:
+        d[key] = result
+    
+def parse_zip_code(s):
+    NUMBERS_RE = re.compile(r'.*?([0-9]+).*?')
+    s = clean_text(s)
+    return NUMBERS_RE.match(s).groups()[0]
+
 def parse_estate_type(s):
     s = clean_text(s).lower()
     if s.startswith('huis'):
@@ -119,16 +194,17 @@ def parse_estate_type(s):
     else:
         return 'other'
 
-def parse_zip_code(s):
-    NUMBERS_RE = re.compile(r'.*?([0-9]+).*?')
-    s = clean_text(s)
-    return NUMBERS_RE.match(s).groups()[0]
-
 def parse_city(s):
     AFTER_ZIP_CODE_RE = re.compile(r'[0-9]+\s+(.*)$')
     s = clean_text(s)
     return AFTER_ZIP_CODE_RE.match(s).groups()[0]
     
+def parse_price(s):
+    try:
+        return int(''.join(re.findall('[0-9]', s)))
+    except ValueError:
+        return None
+
 def deep_contents(node):
     if isinstance(node, NavigableString):
         return node.string
@@ -147,16 +223,7 @@ def conditional_set(d, k, v):
     if v is not None:
         d[k] = v
     
-NUMBERS = ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
-
 class Estates(BaseResource):
-    
-    # Scraping by making a simple page request is not possible. 
-    # Immoweb inserts the address into the page using a script tag.
-    # The workaround is to use PhantomJS to render the page, 
-    # including all script content. We then extract the innerHTML 
-    # from the body, which gives us the fully evaluated page.
-    crawler = 'phantomjs'
     
     def list_url(self, **kwargs):
         from copy import copy
@@ -180,7 +247,7 @@ class Estates(BaseResource):
             estate_row_cells = select(estate_row, 'td')
             # Cell 0: price
             estate_price_cell = estate_row_cells[0]
-            estate['price'] = parse_price(estate_price_cell.string)
+            conditional_set(estate, 'price', parse_price(estate_price_cell.string))
             # Cell 1: type + link
             estate_link = select(estate_row, 'a')[0]['href']
             estate['id'] = parse_immoweb_link(estate_link)
@@ -195,55 +262,66 @@ class Estates(BaseResource):
             estate['city'] = parse_city(estate_city_cell.string)
             estates.append(estate)
         return estates
-
-    def detail_url(self, id):
-        return 'http://www.immoweb.be/nl/global.Estate.cfm?IdBien=%s' % id
         
-    def parse_detail(self, id, html):
-        soup = BeautifulSoup(html)
-        estate = {}
-        estate['id'] = id
+    def get_detail_html(self, id, cached=True):
+        form_data = copy(DEFAULT_FORM_DATA)
+        form_data['Method'] = 'GetEstate'
+        form_data['IdBien'] = str(id)
+        return get_url(IMMOWEB_IPHONE_URL, data=urllib.urlencode(form_data), 
+            crawler='immoweb_crawler', cached=cached, cache_key=id)
 
-        # Estate type
-        if 'Huis' in deep_contents(select(soup, 'h1')):
+    def parse_detail(self, id, html):
+        # The HTML is actually JSON.
+        raw_data = json.loads(html)
+        
+        estate = {}
+        
+        def _parse(key, fn, *args, **kwargs):
+            result = fn(*args, **kwargs)
+            if result is not None:
+                estate[key] = result
+        
+        estate['id'] = id
+        
+        # XIPHONEARRAY_MAININFO contains the title, pictures, price, area / bedrooms and address.
+        raw_title = raw_data['XIPHONEARRAY_MAININFO'][0]
+        raw_pictures = raw_data['XIPHONEARRAY_MAININFO'][1]
+        raw_price = raw_data['XIPHONEARRAY_MAININFO'][2]
+        raw_location_description = raw_data['XIPHONEARRAY_MAININFO'][3]
+        raw_address = raw_data['XIPHONEARRAY_MAININFO'][5]
+
+        if 'Huis' in raw_data['XIPHONEARRAY_MAININFO'][0]:
             estate['estate_type'] = 'house'
         else:
             estate['estate_type'] = 'other'
 
-        # Price
-        estate['price'] = parse_price(select(soup, '.price')[0].string)
+        estate['price'] = parse_price(raw_price)
+        _parse('bedrooms', find_number, r'([0-9]+) slaapkamers', raw_location_description)
+        _parse('area', find_number, r'bewoonbare oppervlakte: ([0-9]+)', raw_location_description)
+
+        raw_address_lines = raw_address.splitlines()
         
-        # Bedrooms / Area
-        try:
-            estate['bedrooms'] = parse_first_number(select(soup, '.locationdescription li')[0].string)
-        except: pass
-        try:
-            estate['area'] = parse_first_number(select(soup, '.locationdescription li')[1].string)
-        except: pass
-        
-        # Address: '<li>Hendrik<font color="#e7ebf7">b</font>Geertstraat<font color="#e7ebf7">s</font>18</li>'
-        address = select(soup, '.locationinfo li')
-        # Sometimes the address is missing. The first line is then the zip_code / city line.
-        street_contents = address[0].contents
-        if not street_contents[0].startswith(NUMBERS):
-            # Only keep the unicode parts (not the tags)
-            street_parts = [s for s in street_contents if isinstance(s, unicode)]
-            estate['address'] = ' '.join(street_parts)
-            city_contents = address[1].contents
+        if len(raw_address_lines) == 1:
+            city_line = raw_address_lines[0]
+        elif len(raw_address_lines) == 2:
+            estate['address'] = raw_address_lines[0].strip()
+            city_line = raw_address_lines[1]
         else:
-            city_contents = address[0].contents
-            # Next line: zip code - city: '<li>2900<font color="#e7ebf7">&amp;</font>-<font color="#e7ebf7">c</font>Schoten</li>'
-        estate['zip_code'] = city_contents[0]
-        estate['city'] = city_contents[4]
-        # Description
-        # Title: '<h2>Volledig gerenoveerde woning met garage en diepe tuin</h2>'
-        title_tag = soup.find('h2')
-        # Immoweb sometimes uses an <iframe> to hide the contents. Don't try to parse any further if we can't find the title.
-        if title_tag is not None:
-            estate['title'] = clean_text(soup.find('h2').contents[0])
-            # Description is the element of same parent the h2 is in.
-            # It is after the <br> tag.
-            estate['description'] = soup.find('h2').parent.find('br').next.strip()
+            print 'Do not know how to handle address:', raw_address
+        estate['zip_code'], estate['city'] = city_line.split(' - ')
+
+        raw_title_lines = raw_title.splitlines()
+        if len(raw_title_lines) >= 2:
+            estate['title'] = raw_title_lines[0]
+        
+        # XIPHONEARRAY_DESCRIPTION contains the full description. Every line is an element in the list.
+        raw_description = raw_data['XIPHONEARRAY_DESCRIPTION'][0]
+        estate['description'] = '\n'.join(raw_description.splitlines())
+
         return estate
 
 estates = Estates()
+
+if __name__=='__main__':
+    from pprint import pprint
+    pprint(estates.get('3224154'))

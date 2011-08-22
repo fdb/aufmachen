@@ -32,12 +32,13 @@ def range_limit():
         time.sleep(secs)
     _last_network_access = utc_now()
         
-def phantomjs_retrieve(url):
+def phantomjs_retrieve(url, data=None):
     """Retrieve the given URL using PhantomJS.
     PhantomJS will evaluate all scripts and return the HTML after body.onload.
     
-    url - The page URL to retrieve
-    
+    url  - The page URL to retrieve
+    data - The form data. TODO: Currently ignored.
+
     Returns a status code (e.g. 200) and the HTML as a unicode string.
     """
     range_limit()
@@ -53,16 +54,17 @@ def phantomjs_retrieve(url):
     else:
         return 404, body
     
-def urllib_retrieve(url):
+def urllib_retrieve(url, data=None):
     """Retrieve the given URL using Python's built-in urllib.
     
-    url - The page URL to retrieve
+    url  - The page URL to retrieve.
+    data - The form data. If you provide this will use the POST method.
     
     Returns a status code (e.g. 200) and the HTML as a unicode string.
     """
     range_limit()
     print "uGET", url
-    f = urlopen(url)
+    f = urlopen(url, data)
     html = f.read().decode('utf-8', 'ignore')
     return f.getcode(), html
 
@@ -84,16 +86,21 @@ def _ensure_directory(dirname):
     except OSError: # File exists
         pass
 
-def get_url(url, cached=True, crawler='urllib'):
+def get_url(url, data=None, cached=True, cache_key=None, crawler='urllib'):
     """Retrieves the HTML code for a given URL.
      If a cached version is not available, uses phantom_retrieve to fetch the page.
 
+    data - Additional data that gets passed onto the crawler.
     cached - If True, retrieves the URL from the cache if it is available. If False, will still store the page in cache.
+    cache_key - If set, will be used instead of the URL to lookup the cached version of the page.
+    crawler - A string referencing one of the builtin crawlers.
 
     Returns the HTML as a unicode string.
     Raises a HttpNotFound exception if the page could not be found.
     """
-    cache_path = cache_path_for_url(url)
+    if cache_key is None:
+        cache_key = url
+    cache_path = cache_path_for_url(cache_key)
     if cached and os.path.exists(cache_path):
         with open(cache_path) as f:
             html = f.read().decode('utf-8')
@@ -101,7 +108,7 @@ def get_url(url, cached=True, crawler='urllib'):
         if FAIL_IF_NOT_CACHED:
             raise BaseException("URL is not in cache and FAIL_IF_NOT_CACHED is True: %s" % url)
         crawler_fn = CRAWLERS[crawler]
-        status, html = crawler_fn(url)
+        status, html = crawler_fn(url, data)
         if status != 200: 
             raise HttpNotFound(url)
         _ensure_directory(CACHE_DIRECTORY)

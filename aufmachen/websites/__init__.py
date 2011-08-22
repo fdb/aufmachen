@@ -8,8 +8,8 @@ class BaseResource(object):
         html = self.get_list_html(**kwargs)
         return self.parse_list(html)
         
-    def get(self, id):
-        html = self.get_detail_html(id)
+    def get(self, id, cached=True):
+        html = self.get_detail_html(id, cached)
         return self.parse_detail(id, html)
 
     def get_list_html(self, cached=True, **kwargs):

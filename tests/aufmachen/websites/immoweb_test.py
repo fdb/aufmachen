@@ -10,7 +10,7 @@ sys.path.insert(0, '../../..')
 from aufmachen import crawler
 crawler.CACHE_DIRECTORY = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../mocks/immoweb')
 # If the data is not in the cache directory, something's wrong. Bail out.
-crawler.FAIL_IF_NOT_CACHED = True
+crawler.FAIL_IF_NOT_CACHED = False
 
 from aufmachen.websites import immoweb
 
@@ -20,6 +20,7 @@ class ImmowebTestCase(unittest.TestCase):
         self.assertEquals(estate['id'], '3154711')
         if detailed:
             self.assertEquals(estate['address'], u'Rue de la Gouttière, 29')
+            self.assertTrue('huis van 17e eeuw spaanse stijl', estate['description'])
         self.assertEquals(estate['estate_type'], 'house')
         self.assertEquals(estate['price'], 310000)
         self.assertEquals(estate['area'], 156)
