@@ -117,4 +117,4 @@ def get_url(url, data=None, cached=True, cache_key=None, crawler='urllib'):
     return html
     
 if __name__=='__main__':
-    print get_url('http://nodebox.net/', crawler='phantomjs', cached=False)
+    print get_url('http://nodebox.net/', crawler='urllib', cached=False)
