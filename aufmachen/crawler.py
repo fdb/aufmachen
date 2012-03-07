@@ -9,7 +9,7 @@ from urllib import urlopen
 
 MODULE_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 PHANTOM_SCRIPT = os.path.join(MODULE_DIRECTORY, 'retrieve.js')
-CACHE_DIRECTORY = os.path.join(MODULE_DIRECTORY, '../tmp/cache')
+CACHE_DIRECTORY = os.path.join('/tmp/aufmachen')
 FAIL_IF_NOT_CACHED = False
 
 class HttpNotFound(BaseException):
