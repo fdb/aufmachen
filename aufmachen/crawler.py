@@ -9,7 +9,7 @@ from urllib import urlopen
 
 MODULE_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 PHANTOM_SCRIPT = os.path.join(MODULE_DIRECTORY, 'retrieve.js')
-CACHE_DIRECTORY = os.path.join(MODULE_DIRECTORY, '../tmp/cache')
+CACHE_DIRECTORY = os.path.join('/tmp/aufmachen')
 FAIL_IF_NOT_CACHED = False
 
 class HttpNotFound(BaseException):
@@ -117,4 +117,4 @@ def get_url(url, data=None, cached=True, cache_key=None, crawler='urllib'):
     return html
     
 if __name__=='__main__':
-    print get_url('http://nodebox.net/', crawler='phantomjs', cached=False)
+    print get_url('http://nodebox.net/', crawler='urllib', cached=False)
