@@ -20,8 +20,8 @@ class EpguidesTestCase(unittest.TestCase):
         self.assertEquals(why_not_song['title'], u'Why Not')
         tags = why_not_song['tags']
         self.assertEquals(len(tags), 11)
-        self.assertEquals(tags[0], '214 electronic')
-        self.assertEquals(tags[4], 'electronic')
+        self.assertEquals(tags[0], (19, '214 electronic'))
+        self.assertEquals(tags[4], (33,'electronic'))
         
 if __name__=='__main__':
     unittest.main()
